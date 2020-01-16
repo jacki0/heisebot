@@ -1,6 +1,8 @@
 import threading
 import requests
 import json
+import re
+import string
 
 message = 'А я сказал, @atlasovNV будет здесь!!!'
 chat = '-321091116'
@@ -13,9 +15,20 @@ def sendmessage(message, chat):
 
 def receivingmessage():
     threading.Timer(3590.0, receivingmessage).start()
+    messages = []
+    ids = []
     req = requests.get('https://api.telegram.org/bot' + bot + '/getupdates')
-    data = json.dumps(req.json(), ensure_ascii=False).encode('utf8').decode().lower()
-    return data
-
-#sendmessage(message, chat)
-receivingmessage()
+    data = json.dumps(req.json(), ensure_ascii=False).encode('utf8').decode().lower().split('"message"')
+    for i in data:
+        if '"type": "private"' in i:
+            i = i.split(', ')
+            for j in i:
+                if 'message_id' in j:
+                    j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j).split(' ')[-1]
+                    ids.append(int(j))
+                elif 'text' in j:
+                    j = j.split(': ')[-1]
+                    j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j)
+                    messages.append(j)
+    messages.insert(0, max(ids))
+    return messages
