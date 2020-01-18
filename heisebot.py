@@ -18,19 +18,13 @@ def sendmessage():
 def receivingmessage():
     threading.Timer(3590.0, receivingmessage).start()  # Запуск функции каждые 59 минут 50 секунд
     messages = []
-    ids = []
     req = requests.get('https://api.telegram.org/bot' + bot + '/getupdates')
     data = json.dumps(req.json(), ensure_ascii=False).encode('utf8').decode().lower().split('"message"')
     for i in data:
         if '"type": "private"' in i:                   # Проверка, что сообщение было отправлено боту, а не в групповой чат
             i = i.split(', ')
             for j in i:
-                if 'message_id' in j:                  # Получаем id сообщения, что-бы проверить, что это сообщение ещё не передано в базу
-                    j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j).split(' ')[-1]
-                    ids.append(int(j))
-                elif 'text' in j:                      # Получаем текст сообщения
-                    j = j.split(': ')[-1]
-                    j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j)
-                    messages.append(j)
-    messages.insert(0, max(ids))                       # Формируем список, где первый элемент - id последнего сообщения, остальные - текст сообщений
-    return messages
+                if 'message_id' in j or 'text' in j:   # Получаем текст и id cообщения
+                   j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j).split(' ')[-1]
+                   messages.append(j)
+    return messages                                    # Возвращаем результирующий список где чередутся текс и id сообщений
