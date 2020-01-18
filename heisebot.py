@@ -3,7 +3,12 @@ import requests
 import json
 import re
 import string
+import psycopg2
 
+
+conn = psycopg2.connect(dbname='heisedb', user='heisen', 
+                        password='Heisen!', host='localhost')
+cursor = conn.cursor()
 
 message = 'test message'
 chat = '-321091116'
@@ -16,15 +21,27 @@ def sendmessage():
 
 
 def receivingmessage():
-    threading.Timer(3590.0, receivingmessage).start()  # Запуск функции каждые 59 минут 50 секунд
     messages = []
+    ids = []
     req = requests.get('https://api.telegram.org/bot' + bot + '/getupdates')
     data = json.dumps(req.json(), ensure_ascii=False).encode('utf8').decode().lower().split('"message"')
     for i in data:
         if '"type": "private"' in i:                   # Проверка, что сообщение было отправлено боту, а не в групповой чат
             i = i.split(', ')
             for j in i:
-                if 'message_id' in j or 'text' in j:   # Получаем текст и id cообщения
-                   j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j).split(' ')[-1]
-                   messages.append(j)
-    return messages                                    # Возвращаем результирующий список где чередутся текс и id сообщений
+                if 'text' in j:                        # Получаем текст cообщения
+                    j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j.split(': ')[-1])
+                    messages.append(j)
+                if 'message_id' in j:                  # Получаем id сообщения
+                    j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j.split(': ')[-1])
+                    ids.append(j)
+    return list(zip(messages, ids))                              # Возвращаем итератор содержащий пары (текст, id) сообщения
+
+
+def insertdb():
+    threading.Timer(3590.0, insertdb).start()          # Запуск функции каждые 59 минут 50 секунд
+    messages = receivingmessage()
+    for i in messages:
+        cursor.execute("INSERT into messages(message, message_id) VALUES (%s, %s)", i)
+
+insertdb()
