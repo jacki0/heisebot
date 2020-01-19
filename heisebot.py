@@ -7,7 +7,7 @@ import re
 
 
 chat = '-321091116'
-bot = '887793509:AAF_wasq78q0AUX37GgKaFV5IB_hi5NVnbo'\
+bot = '887793509:AAF_wasq78q0AUX37GgKaFV5IB_hi5NVnbo'
 
 conn = psycopg2.connect(dbname='heisedb', user='heisen', password='Heisen!', host='localhost')
 cursor = conn.cursor()
@@ -42,8 +42,11 @@ def insertdb():
 def extractdb():
     threading.Timer(10800.0, extractdb).start()        # Запуск функции каждые 3 часа
     messages =[]
-    lastsend = cursor.execute("SELECT last_send_id FROM messages").fetchall()
-    cursor.execute("SELECT messages where message_id > " + lastsend)
+    cursor.execute("SELECT last_send_id FROM messages")                         # Получаем id последнего отправленного сообщения
+    lastsend = cursor.fetchall()
+    cursor.execute("SELECT messages where message_id > " + lastsend)            # Получаем получаем список не отправленных на момент запуска функции сообщений
     rows = cursor.fetchall()
     for row in rows:
         messages.append(row)
+    for message in messages:                           # Отправка сообщений
+        sendmessage(message)
