@@ -1,24 +1,20 @@
 import threading
 import requests
+import psycopg2
+import string
 import json
 import re
-import string
-import psycopg2
 
 
-conn = psycopg2.connect(dbname='heisedb', user='heisen', 
-                        password='Heisen!', host='localhost')
+chat = '-321091116'
+bot = '887793509:AAF_wasq78q0AUX37GgKaFV5IB_hi5NVnbo'\
+
+conn = psycopg2.connect(dbname='heisedb', user='heisen', password='Heisen!', host='localhost')
 cursor = conn.cursor()
 
-message = 'test message'
-chat = '-321091116'
-bot = '887793509:AAF_wasq78q0AUX37GgKaFV5IB_hi5NVnbo'
-
-def sendmessage():
-    threading.Timer(10800.0, sendmessage).start()      # Запуск функции каждые 3 часа
+def sendmessage(message):
     link = 'https://api.telegram.org/bot' + bot + '/sendMessage?chat_id=' + chat + '&text=' + message
     requests.get(link)                                 # Отправка сообщения
-
 
 def receivingmessage():
     messages = []
@@ -32,11 +28,10 @@ def receivingmessage():
                 if 'text' in j:                        # Получаем текст cообщения
                     j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j.split(': ')[-1])
                     messages.append(j)
-                if 'message_id' in j:                  # Получаем id сообщения
+                elif 'message_id' in j:                # Получаем id сообщения
                     j = re.sub('[{}]'.format(re.escape(string.punctuation)), '', j.split(': ')[-1])
                     ids.append(j)
-    return list(zip(messages, ids))                              # Возвращаем итератор содержащий пары (текст, id) сообщения
-
+    return list(zip(messages, ids))                    # Возвращаем итератор содержащий пары (текст, id) сообщения
 
 def insertdb():
     threading.Timer(3590.0, insertdb).start()          # Запуск функции каждые 59 минут 50 секунд
@@ -44,4 +39,11 @@ def insertdb():
     for i in messages:
         cursor.execute("INSERT into messages(message, message_id) VALUES (%s, %s)", i)
 
-insertdb()
+def extractdb():
+    threading.Timer(10800.0, extractdb).start()        # Запуск функции каждые 3 часа
+    messages =[]
+    lastsend = cursor.execute("SELECT last_send_id FROM messages").fetchall()
+    cursor.execute("SELECT messages where message_id > " + lastsend)
+    rows = cursor.fetchall()
+    for row in rows:
+        messages.append(row)
