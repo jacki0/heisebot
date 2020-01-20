@@ -20,8 +20,12 @@ def receivingmessage():
     messages = []
     ids = []
     req = requests.get('https://api.telegram.org/bot' + bot + '/getupdates')
-    data = json.dumps(req.json(), ensure_ascii=False).encode('utf8').decode().lower().split('"message"')
-    for i in data:
+    data = json.dumps(req.json(), ensure_ascii=False).encode('utf8').decode().lower()
+    cursor.execute("SELECT last_send FROM messages")   # Получаем id последнего отправленного сообщения
+    lastsend = cursor.fetchall()
+    if '"message_id": ' + str(lastsend) in data:       # Проверка присутствия последнего отправленного в чат сообщения в полученных данных
+        data = data.split('"message_id": ' + str(lastsend))
+    for i in data.split('"message"'):
         if '"type": "private"' in i:                   # Проверка, что сообщение было отправлено боту, а не в групповой чат
             i = i.split(', ')
             for j in i:
@@ -42,7 +46,7 @@ def insertdb():
 def extractdb():
     threading.Timer(10800.0, extractdb).start()        # Запуск функции каждые 3 часа
     messages =[]
-    cursor.execute("SELECT last_send_id FROM messages")                         # Получаем id последнего отправленного сообщения
+    cursor.execute("SELECT last_send FROM messages")   # Получаем id последнего отправленного сообщения
     lastsend = cursor.fetchall()
     cursor.execute("SELECT messages where message_id > " + lastsend)            # Получаем получаем список не отправленных на момент запуска функции сообщений
     rows = cursor.fetchall()
